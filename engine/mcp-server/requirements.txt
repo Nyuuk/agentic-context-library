@@ -1,5 +1,5 @@
-# MCP SDK
-mcp>=0.9.0
+# MCP SDK (mcp_use includes mcp and server framework)
+mcp_use>=0.5.0
 
 # Vector Database
 qdrant-client>=1.7.0
@@ -12,9 +12,6 @@ torch>=2.0.0
 python-frontmatter>=1.0.0
 pyyaml>=6.0
 
-# Server Framework
-fastapi>=0.100.0
-uvicorn>=0.20.0
-
 # Utilities
 python-dotenv>=1.0.0
+requests>=2.31.0
