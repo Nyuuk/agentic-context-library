@@ -128,15 +128,15 @@ def search_context(
     # Create filter object
     search_filter = Filter(must=filter_conditions) if filter_conditions else None
     
-    # Execute search
+    # Execute search using query_points
     logger.info(f"Searching: '{query}' (top_k={top_k}, filters={len(filter_conditions)})")
-    results = qdrant_client.search(
+    results = qdrant_client.query_points(
         collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
+        query=query_vector,
         query_filter=search_filter,
         limit=top_k,
         with_payload=True
-    )
+    ).points
     
     # Format results
     formatted_results = []

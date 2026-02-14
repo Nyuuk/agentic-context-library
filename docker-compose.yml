@@ -24,6 +24,8 @@ services:
       context: ./engine/mcp-server
       dockerfile: Dockerfile
     container_name: agentix-mcp-server
+    ports:
+      - 8000:8000
     depends_on:
       qdrant:
         condition: service_healthy
