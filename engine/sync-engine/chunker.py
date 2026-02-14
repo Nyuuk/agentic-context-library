@@ -4,7 +4,7 @@ from typing import List
 from dataclasses import dataclass
 import logging
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import tiktoken
 
 logger = logging.getLogger(__name__)

@@ -3,6 +3,7 @@
 from typing import List, Dict, Optional, Set
 import hashlib
 import logging
+import uuid
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
@@ -260,6 +261,16 @@ class QdrantManager:
     
     @staticmethod
     def _generate_document_id(path_document: str, chunk_index: int) -> str:
-        """Generate unique document ID from path and chunk index."""
+        """
+        Generate unique document ID as UUID from path and chunk index.
+        
+        Uses UUID v5 (deterministic) with DNS namespace for consistent IDs.
+        """
+        # Create a deterministic identifier
         content = f"{path_document}#{chunk_index}"
-        return hashlib.sha256(content.encode()).hexdigest()
+        
+        # Generate UUID v5 (SHA-1 based, deterministic)
+        # Using DNS namespace as a standard namespace
+        doc_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, content)
+        
+        return str(doc_uuid)

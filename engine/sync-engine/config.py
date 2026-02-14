@@ -9,17 +9,15 @@ from typing import Optional
 class Config:
     """Sync Engine configuration from environment variables."""
     
-    # Qdrant settings
+    # Required fields (no defaults)
     qdrant_url: str
-    collection_name: str = "context_library"
-    
-    # Embedding settings
     embedding_model: str
-    vector_size: int = 1024
-   distance_metric: str = "Cosine"
-    
-    # Context registry
     context_root: str
+    
+    # Qdrant settings (with defaults)
+    collection_name: str = "context_library"
+    vector_size: int = 1024
+    distance_metric: str = "Cosine"
     
     # Logging
     log_level: str = "INFO"

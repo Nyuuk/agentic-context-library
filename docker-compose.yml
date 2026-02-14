@@ -6,13 +6,13 @@ services:
     image: qdrant/qdrant:latest
     container_name: agentix-qdrant
     ports:
-      - "6333:6333"    # REST API
-      - "6334:6334"    # gRPC
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC
     volumes:
       - qdrant-data:/qdrant/storage
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      test: [ "CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/6333' || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,19 +28,21 @@ services:
       qdrant:
         condition: service_healthy
     volumes:
-      - ./context-registry:/data/context-registry:ro   # Read-only mount
+      - ./context-registry:/data/context-registry:ro # Read-only mount
+      - huggingface-cache:/root/.cache/huggingface # Persistent model cache
     environment:
       - QDRANT_URL=http://qdrant:6333
       - CONTEXT_ROOT=/data/context-registry
       - EMBEDDING_MODEL=BAAI/bge-m3
       - LOG_LEVEL=INFO
+      - HF_HOME=/root/.cache/huggingface # HuggingFace cache location
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      test: [ "CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 120s  # BGE-M3 loading takes time
+      start_period: 120s # BGE-M3 loading takes time
 
   # ─── Sync Engine (One-Shot, on-demand) ─────────────
   sync-engine:
@@ -52,19 +54,24 @@ services:
       qdrant:
         condition: service_healthy
     volumes:
-      - ./context-registry:/data/context-registry:ro   # Read-only mount
+      - ./context-registry:/data/context-registry:ro # Read-only mount
+      - huggingface-cache:/root/.cache/huggingface # Shared model cache
     environment:
       - QDRANT_URL=http://qdrant:6333
       - CONTEXT_ROOT=/data/context-registry
       - EMBEDDING_MODEL=BAAI/bge-m3
       - LOG_LEVEL=INFO
+      - HF_HOME=/root/.cache/huggingface # HuggingFace cache location
     profiles:
-      - sync    # Tidak berjalan saat `docker compose up`, hanya saat di-trigger
+      - sync # Tidak berjalan saat `docker compose up`, hanya saat di-trigger
 
 volumes:
   qdrant-data:
     driver: local
     name: agentix-qdrant-data
+  huggingface-cache:
+    driver: local
+    name: agentix-huggingface-cache
 
 networks:
   default:
