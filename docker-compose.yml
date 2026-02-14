@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+  # ─── Vector Database (Persistent) ──────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: agentix-qdrant
+    ports:
+      - "6333:6333"    # REST API
+      - "6334:6334"    # gRPC
+    volumes:
+      - qdrant-data:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ─── MCP Server (Persistent) ───────────────────────
+  mcp-server:
+    build:
+      context: ./engine/mcp-server
+      dockerfile: Dockerfile
+    container_name: agentix-mcp-server
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./context-registry:/data/context-registry:ro   # Read-only mount
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - CONTEXT_ROOT=/data/context-registry
+      - EMBEDDING_MODEL=BAAI/bge-m3
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # BGE-M3 loading takes time
+
+  # ─── Sync Engine (One-Shot, on-demand) ─────────────
+  sync-engine:
+    build:
+      context: ./engine/sync-engine
+      dockerfile: Dockerfile
+    container_name: agentix-sync-engine
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./context-registry:/data/context-registry:ro   # Read-only mount
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - CONTEXT_ROOT=/data/context-registry
+      - EMBEDDING_MODEL=BAAI/bge-m3
+      - LOG_LEVEL=INFO
+    profiles:
+      - sync    # Tidak berjalan saat `docker compose up`, hanya saat di-trigger
+
+volumes:
+  qdrant-data:
+    driver: local
+    name: agentix-qdrant-data
+
+networks:
+  default:
+    name: agentix-network
