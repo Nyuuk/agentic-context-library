@@ -195,6 +195,7 @@ class QdrantManager:
                 "checksum": doc_info.checksum,
                 "chunk_index": chunk.chunk_index,
                 "chunk_text": chunk.text,
+                "full_content": doc_info.content if chunk.chunk_index == 0 else None,
                 "header_context": chunk.header_context,
                 **doc_info.metadata.to_dict(),  # title, version, status, language, tags
             }

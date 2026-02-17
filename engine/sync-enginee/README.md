@@ -24,12 +24,34 @@ The sync engine:
 
 ## Usage
 
-### Via Docker Compose (Recommended)
+### Normal Sync (Skip Unchanged Files)
+
+By default, sync-engine only processes new or modified files:
 
 ```bash
-# Run sync (one-shot)
-docker compose run --rm sync-engine
+# Via Docker Compose (Recommended)
+docker compose --profile sync run --rm sync-engine
 ```
+
+### Force Full Re-Sync
+
+To force re-processing of **all** files (useful for migrations or index rebuilds):
+
+```bash
+# Via CLI flag
+docker compose --profile sync run --rm sync-engine --force
+
+# Or via environment variable
+FORCE_SYNC=true docker compose --profile sync run --rm sync-engine
+```
+
+**When to use `--force`:**
+- After changing embedding model
+- After schema changes in Qdrant
+- For data migration or recovery
+- To rebuild the entire vector index
+
+> ⚠️ **Warning:** Force sync will re-embed all documents, which is resource-intensive (GPU memory + time).
 
 ### Local Development
 
@@ -42,8 +64,11 @@ export QDRANT_URL=http://localhost:6333
 export CONTEXT_ROOT=/path/to/context-registry
 export EMBEDDING_MODEL=BAAI/bge-m3
 
-# Run sync
+# Run sync (normal)
 python sync.py
+
+# Run sync (force)
+python sync.py --force
 ```
 
 ## Configuration
@@ -55,6 +80,7 @@ Environment variables:
 - `EMBEDDING_MODEL` - HuggingFace model name (default: BAAI/bge-m3)
 - `COLLECTION_NAME` - Qdrant collection name (default: context_library)
 - `LOG_LEVEL` - Logging level (default: INFO)
+- `FORCE_SYNC` - Force re-sync all files (default: false, accepts: true/false)
 
 ## Exit Codes
 

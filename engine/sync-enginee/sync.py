@@ -96,10 +96,13 @@ def main() -> int:
                 existing_checksum = qdrant.get_document_checksum(doc_info.relative_path)
                 
                 if existing_checksum == doc_info.checksum:
-                    # Unchanged - skip
-                    stats.skipped_files += 1
-                    logger.debug(f"⏭️  Skipped (unchanged): {doc_info.relative_path}")
-                    continue
+                    # Skip unchanged documents (unless --force is specified)
+                    if not config.force_sync:
+                        stats.skipped_files += 1
+                        logger.info(f"{Fore.YELLOW}⏭️  Skipped (unchanged): {doc_info.relative_path}{Style.RESET_ALL}")
+                        continue
+                    else:
+                        logger.info(f"{Fore.CYAN}🔄 Force updating: {doc_info.relative_path}{Style.RESET_ALL}")
                 
                 # Document is new or changed
                 is_new = existing_checksum is None

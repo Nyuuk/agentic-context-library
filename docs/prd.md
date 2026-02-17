@@ -2,7 +2,7 @@
 # Agentix Context Library
 
 > **Version:** 1.0.0
-> **Status:** Draft
+> **Status:** Iplemented
 > **Tanggal:** 15 Februari 2026
 > **Disusun berdasarkan:** Diskusi arsitektur 14-15 Februari 2026
 
@@ -621,13 +621,31 @@ Agent:
 
 ### 10.1 Aturan Upsert (Overwrite)
 
+**Default Behavior: Skip Unchanged Files**
+
+Sync Engine menggunakan checksum SHA-256 untuk mendeteksi perubahan.
+File yang tidak berubah akan **di-skip** untuk menghemat resource.
+
 | Kondisi | Aksi |
 |---|---|
 | File baru (belum ada di DB) | Chunk → Embed → Insert |
-| File berubah (checksum berbeda) | Hapus chunks lama → Chunk ulang → Embed → Insert |
-| File tidak berubah (checksum sama) | Skip |
+| File berubah (checksum berbeda) | Hapus chunks lama → Chunk ulang → Embed → Upsert |
+| File tidak berubah (checksum sama) | **Skip (default)** atau Update (jika `--force`) |
 | File dihapus dari filesystem | Hapus semua chunks dengan `path_document` tersebut |
 | `status: deprecated` | Update metadata saja, chunks tetap ada |
+
+**Force Sync Mode:**
+
+Untuk force full re-sync (semua file di-update terlepas dari checksum):
+```bash
+docker compose --profile sync run --rm sync-engine --force
+```
+
+**Kapan menggunakan `--force`:**
+- Setelah mengganti embedding model
+- Setelah schema changes di Qdrant
+- Untuk data migration atau recovery
+- Untuk rebuild seluruh vector index
 
 ### 10.2 Konsistensi Model
 

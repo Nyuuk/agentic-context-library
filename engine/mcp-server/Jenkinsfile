@@ -1,0 +1,77 @@
+pipeline {
+    agent {
+        docker { 
+            image 'docker:dind' 
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+
+    environment {
+        // Registry Configuration - ADJUST THESE VALUES AS NEEDED
+        REGISTRY_URL = 'registry.gitlab.com'
+        IMAGE_NAME = 'agentix-mcp-server'
+        // Jenkins Credential ID for GitLab Registry access
+        CREDENTIALS_ID = 'gitlab-registry-credentials' 
+        
+        // Dynamic Versioning
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    echo "Building Docker image..."
+                    docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                    docker.build("${IMAGE_NAME}:latest")
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    echo "Running basic health check..."
+                    // Start container
+                    sh "docker run -d --name test-mcp-server -p 8000:8000 ${IMAGE_NAME}:${IMAGE_TAG}"
+                    
+                    // Wait for startup (simple sleep for demonstration, better to use healthcheck loop)
+                    sleep 5
+                    
+                    // Check if process is running
+                    sh "docker ps | grep test-mcp-server"
+                    
+                    // Cleanup
+                    sh "docker rm -f test-mcp-server"
+                }
+            }
+        }
+
+        stage('Push') {
+            steps {
+                script {
+                    echo "Pushing to GitLab Registry..."
+                    docker.withRegistry("https://${REGISTRY_URL}", "${CREDENTIALS_ID}") {
+                        docker.image("${IMAGE_NAME}:${IMAGE_TAG}").push()
+                        docker.image("${IMAGE_NAME}:latest").push()
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "Cleaning up..."
+                sh "docker system prune -f"
+            }
+        }
+        success {
+            echo "Pipeline succeeded!"
+        }
+        failure {
+            echo "Pipeline failed!"
+        }
+    }
+}

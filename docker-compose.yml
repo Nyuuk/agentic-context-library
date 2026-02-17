@@ -30,17 +30,18 @@ services:
       qdrant:
         condition: service_healthy
     volumes:
-      - ./context-registry:/data/context-registry:ro # Read-only mount
       - huggingface-cache:/root/.cache/huggingface # Persistent model cache
+      - pip-cache:/pip-cache
+      - tmp:/tmp
+    env_file:
+      - .env
     environment:
-      - QDRANT_URL=http://qdrant:6333
-      - CONTEXT_ROOT=/data/context-registry
-      - EMBEDDING_MODEL=BAAI/bge-m3
-      - LOG_LEVEL=INFO
       - HF_HOME=/root/.cache/huggingface # HuggingFace cache location
+      - TMPDIR=/tmp
+      - PIP_CACHE_DIR=/pip-cache
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')" ]
+      test: [ "CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/8000' || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -49,21 +50,23 @@ services:
   # ─── Sync Engine (One-Shot, on-demand) ─────────────
   sync-engine:
     build:
-      context: ./engine/sync-engine
+      context: ./engine/sync-enginee
       dockerfile: Dockerfile
     container_name: agentix-sync-engine
-    depends_on:
-      qdrant:
-        condition: service_healthy
+    # depends_on:
+    #   qdrant:
+    #     condition: service_healthy
     volumes:
       - ./context-registry:/data/context-registry:ro # Read-only mount
       - huggingface-cache:/root/.cache/huggingface # Shared model cache
+      - pip-cache:/pip-cache
+      - tmp:/tmp
+    env_file:
+      - .env
     environment:
-      - QDRANT_URL=http://qdrant:6333
-      - CONTEXT_ROOT=/data/context-registry
-      - EMBEDDING_MODEL=BAAI/bge-m3
-      - LOG_LEVEL=INFO
       - HF_HOME=/root/.cache/huggingface # HuggingFace cache location
+      - TMPDIR=/tmp
+      - PIP_CACHE_DIR=/pip-cache
     profiles:
       - sync # Tidak berjalan saat `docker compose up`, hanya saat di-trigger
 
@@ -74,6 +77,12 @@ volumes:
   huggingface-cache:
     driver: local
     name: agentix-huggingface-cache
+  pip-cache:
+    driver: local
+    name: agentix-pip-cache
+  tmp:
+    driver: local
+    name: agentix-tmp
 
 networks:
   default:

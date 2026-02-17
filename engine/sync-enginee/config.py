@@ -28,15 +28,24 @@ class Config:
     max_chunk_size: int = 8192  # BGE-M3 max tokens
     min_chunk_size: int = 50  # tokens to merge
     
+    # Force sync mode
+    force_sync: bool = False  # Force re-sync all documents regardless of checksum
+    
     @classmethod
     def from_env(cls) -> "Config":
         """Load configuration from environment variables."""
+        import sys
+        
+        # Check for --force flag in command line arguments or environment
+        force_sync = "--force" in sys.argv or os.getenv("FORCE_SYNC", "false").lower() == "true"
+        
         return cls(
             qdrant_url=os.getenv("QDRANT_URL", "http://localhost:6333"),
             collection_name=os.getenv("COLLECTION_NAME", "context_library"),
             embedding_model=os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3"),
             context_root=os.getenv("CONTEXT_ROOT", "/data/context-registry"),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
+            force_sync=force_sync,
         )
     
     def validate(self) -> None:
